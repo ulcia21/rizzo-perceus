@@ -1,0 +1,37 @@
+# .NET build output
+[Bb]in/
+[Oo]bj/
+artifacts/
+
+# Visual Studio settings and local files
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# JetBrains Rider
+.idea/
+*.sln.iml
+
+# Test results and coverage
+TestResults/
+coverage/
+coverage.xml
+*.coverage
+*.coveragexml
+
+# NuGet packages (older projects)
+packages/
+*.nupkg
+*.snupkg
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# Windows files
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
