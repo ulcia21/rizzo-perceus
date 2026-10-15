@@ -35,6 +35,7 @@ let rec freeVarsExpr expr =
             |> Set.unionMany
 
         Set.add x branchFreeVars
+    | S.Function _ -> Set.empty
 
 // Match for each branch takes all the free variables of the body minus the variables that are introduced by the pattern
 // and later used in that body (so those are bound!) In the end it adds x because it was never binded anywhere (just pattern matched on)

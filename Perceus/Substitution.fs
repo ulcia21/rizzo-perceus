@@ -34,6 +34,7 @@ let rec substitute (replacements: Map<T.Var, T.Var>) expr =
     | T.Drop(x, body) -> T.Drop(replace x, substitute replacements body)
     | T.MatchVar(x, branches) -> T.MatchVar(replace x, List.map visitBranch branches)
     | T.MatchExpr(value, branches) -> T.MatchExpr(substitute replacements value, List.map visitBranch branches)
+    | T.Function _ -> expr
 
 let substituteOne variable ref expr =
     substitute (Map.ofList [ variable, ref ]) expr

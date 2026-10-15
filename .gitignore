@@ -35,3 +35,4 @@ packages/
 Thumbs.db
 Desktop.ini
 $RECYCLE.BIN/
+.fake

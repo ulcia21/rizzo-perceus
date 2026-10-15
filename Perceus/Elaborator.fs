@@ -72,9 +72,48 @@ let private checkAssumptionsFigure8 delta gamma expr =
 // Figure 8
 // --------------------------------------------------------
 
+
 let rec translate (Delta: MultiSet<S.Var>) (Gamma: MultiSet<S.Var>) (expr: S.Expr) : T.Expr =
     //checkAssumptionsFigure8 delta gamma expr // for debugging
+    //helper for translating Rizzo operations (similar to constructor)
+    let transformed values =
+        let rec goThrough values =
+            match values with
+            | [] -> [], empty
+            | value :: rest ->
+                let rest', laterOwned = goThrough rest
+
+                let owned =
+                    intersection (difference Gamma laterOwned) (setToMultiSet (freeVarsExpr value))
+
+                let value' = translate (sum Delta laterOwned) owned value
+                value' :: rest', (sum owned laterOwned)
+
+        goThrough values |> fst
+
+    let transformInOrder rizzoOperation left right =
+        match transformed [ left; right ] with
+        | [ left'; right' ] -> rizzoOperation (left', right')
+        | _ -> fail "Expected two operands."
+
     match expr with
+    //Rizzo specific operations with just one argument behaving like the constructor from Perceus
+    | S.Chan name -> T.Chan name
+    | S.Never -> T.Never
+    | S.Head t -> T.Head(translate Gamma Delta t)
+    | S.Tail t -> T.Tail(translate Delta Gamma t)
+    | S.Wait t -> T.Wait(translate Delta Gamma t)
+    | S.Watch t -> T.Watch(translate Delta Gamma t)
+    //Rizzo specific operations with two argument behaving like the constructor from Perceus
+    | S.SignalCons(s, t) -> transformInOrder T.SignalCons s t
+    | S.Sync(s, t) -> transformInOrder T.Sync s t
+    | S.ApplyWhenV(s, t) -> transformInOrder T.ApplyWhenV s t
+    | S.ApplyLater(s, t) -> transformInOrder T.ApplyLater s t
+    | S.Delay body ->
+        let captures = setToMultiSet (freeVarsExpr body)
+        let body' = translate empty captures body
+        let borrowed = difference captures Gamma
+        dupMany borrowed (T.Delay(toList captures |> List.map toTargetVar, body'))
     // [SVAR] and [SVAR-DUP]
     | S.Var x ->
         if Gamma = MultiSet.singleton x then
@@ -176,6 +215,8 @@ let rec translate (Delta: MultiSet<S.Var>) (Gamma: MultiSet<S.Var>) (expr: S.Exp
         let values', _ = translateValues vals
 
         T.Cons(toTargetConstructor constructor, values')
+
+    | S.Function name -> T.Function name
 
 
 let elaborate expr = translate empty empty expr

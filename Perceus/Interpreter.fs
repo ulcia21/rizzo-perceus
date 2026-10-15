@@ -36,7 +36,7 @@ let rec dropMany references body =
     | [] -> body
     | x :: rest -> T.Drop(x, dropMany rest body)
 
-let rec reduce expr heap nextId usedIds =
+let rec reduce expr heap nextId usedIds (functions: T.FunctionContext) =
     match expr with
     | T.Var reference ->
         H.lookup reference heap |> ignore // we just want to know if the reference is there
@@ -62,7 +62,9 @@ let rec reduce expr heap nextId usedIds =
                     let rest', heap', nextId', usedIds' = reduceField rest
                     T.Var x :: rest', heap', nextId', usedIds'
                 | current :: rest ->
-                    let current', heap', nextId', usedIds' = reduce current heap nextId usedIds
+                    let current', heap', nextId', usedIds' =
+                        reduce current heap nextId usedIds functions
+
                     current' :: rest, heap', nextId', usedIds'
                 | [] -> raise (InterpreterError "No constructor field to reduce.")
 
@@ -76,7 +78,7 @@ let rec reduce expr heap nextId usedIds =
             let body' = Substitution.substituteOne x reference body
             body', heap, nextId, usedIds
         | _ ->
-            let value', heap', nextId', usedIds' = reduce value heap nextId usedIds
+            let value', heap', nextId', usedIds' = reduce value heap nextId usedIds functions
             T.Let(x, value', body), heap', nextId', usedIds'
     //appr
     | T.App(left, right) ->
@@ -91,10 +93,10 @@ let rec reduce expr heap nextId usedIds =
                 expr', heap, nextId, usedIds
             | H.ConstructorValue _ -> raise (InterpreterError "Cannot apply a constructor as a function.")
         | T.Var _, _ -> //left side ready, right not yet
-            let right', heap', nextId', usedIds' = reduce right heap nextId usedIds
+            let right', heap', nextId', usedIds' = reduce right heap nextId usedIds functions
             T.App(left, right'), heap', nextId', usedIds'
         | _, _ ->
-            let left', heap', nextId', usedIds' = reduce left heap nextId usedIds
+            let left', heap', nextId', usedIds' = reduce left heap nextId usedIds functions
             T.App(left', right), heap', nextId', usedIds'
     //matchr
     | T.MatchVar(x, branches) ->
@@ -140,8 +142,13 @@ let rec reduce expr heap nextId usedIds =
     | T.MatchExpr _ -> //???
         raise (InterpreterError "Figure 7 uses MatchVar; MatchExpr is not supported.")
 
+    | T.Function name ->
+        match Map.tryFind name functions with
+        | Some definition -> definition, heap, nextId, usedIds
+        | None -> raise (InterpreterError "Unknown function looked up in FunctionContext")
 
-let rec run stepleftlimit expr heap nextId usedIds =
+
+let rec run stepleftlimit expr heap nextId usedIds (functions: T.FunctionContext) =
     match expr with
     | T.Var ref ->
         H.lookup ref heap |> ignore
@@ -150,5 +157,5 @@ let rec run stepleftlimit expr heap nextId usedIds =
         if stepleftlimit <= 0 then
             raise (InterpreterError "Step limit reached.")
 
-        let expr', heap', nextId', usedIds' = reduce expr heap nextId usedIds
-        run (stepleftlimit - 1) expr' heap' nextId' usedIds'
+        let expr', heap', nextId', usedIds' = reduce expr heap nextId usedIds functions
+        run (stepleftlimit - 1) expr' heap' nextId' usedIds' functions
