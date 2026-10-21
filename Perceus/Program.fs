@@ -14,3 +14,5 @@ Tests.run "application" Tests.testApp
 // Expected: App (Var (Varr "f"), Var (Varr "x"))
 
 Tests.runIdentityFunctionTest ()
+
+Tests.runMapTest ()

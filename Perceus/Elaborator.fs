@@ -100,15 +100,16 @@ let rec translate (Delta: MultiSet<S.Var>) (Gamma: MultiSet<S.Var>) (expr: S.Exp
     //Rizzo specific operations with just one argument behaving like the constructor from Perceus
     | S.Chan name -> T.Chan name
     | S.Never -> T.Never
-    | S.Head t -> T.Head(translate Gamma Delta t)
+    | S.Head t -> T.Head(translate Delta Gamma t)
     | S.Tail t -> T.Tail(translate Delta Gamma t)
     | S.Wait t -> T.Wait(translate Delta Gamma t)
     | S.Watch t -> T.Watch(translate Delta Gamma t)
-    //Rizzo specific operations with two argument behaving like the constructor from Perceus
+    //Rizzo specific operations with two arguments also behaving like the constructor from Perceus
     | S.SignalCons(s, t) -> transformInOrder T.SignalCons s t
     | S.Sync(s, t) -> transformInOrder T.Sync s t
     | S.ApplyWhenV(s, t) -> transformInOrder T.ApplyWhenV s t
     | S.ApplyLater(s, t) -> transformInOrder T.ApplyLater s t
+    // Delay copies the values that might not be there in the future
     | S.Delay body ->
         let captures = setToMultiSet (freeVarsExpr body)
         let body' = translate empty captures body

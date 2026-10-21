@@ -36,6 +36,17 @@ let rec freeVarsExpr expr =
 
         Set.add x branchFreeVars
     | S.Function _ -> Set.empty
+    | S.Chan _ -> Set.empty
+    | S.Never -> Set.empty
+    | S.Head t -> freeVarsExpr t
+    | S.Tail t -> freeVarsExpr t
+    | S.Wait t -> freeVarsExpr t
+    | S.Watch t -> freeVarsExpr t
+    | S.SignalCons(e1, e2) -> Set.union (freeVarsExpr e1) (freeVarsExpr e2)
+    | S.Sync(e1, e2) -> Set.union (freeVarsExpr e1) (freeVarsExpr e2)
+    | S.ApplyWhenV(e1, e2) -> Set.union (freeVarsExpr e1) (freeVarsExpr e2)
+    | S.ApplyLater(e1, e2) -> Set.union (freeVarsExpr e1) (freeVarsExpr e2)
+    | S.Delay t -> freeVarsExpr t
 
 // Match for each branch takes all the free variables of the body minus the variables that are introduced by the pattern
 // and later used in that body (so those are bound!) In the end it adds x because it was never binded anywhere (just pattern matched on)

@@ -40,11 +40,12 @@ let runIdentityFunctionTest () =
 
     let source = S.App(S.Function "identity", unitValue)
 
-    let result, memory, now, _ =
+    let result, memory, _, _ =
         Interpreter.run 100 (elaborate source) H.empty 0 Set.empty functions
 
     let reference = Interpreter.getReference result
     expect (value reference memory = H.ConstructorValue(T.Constructor "Unit", [])) "Identity test failed"
+    printfn "PASS identity returns Unit"
 
 
 let mapDefinition =
@@ -84,10 +85,6 @@ let mapTest =
 
     S.Let(S.Varr "x", cons zero (cons zero nil), S.App(S.App(S.Function "map", increment), S.Var(S.Varr "x")))
 
-let target = elaborate mapTest
-
-let result, memory, heap, _ =
-    Interpreter.run 100 target H.empty 0 Set.empty mapFunctions
 
 // Read natural numbers and lists from the resulting heap.
 let rec readNat memory reference =

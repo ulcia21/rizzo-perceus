@@ -35,6 +35,17 @@ let rec substitute (replacements: Map<T.Var, T.Var>) expr =
     | T.MatchVar(x, branches) -> T.MatchVar(replace x, List.map visitBranch branches)
     | T.MatchExpr(value, branches) -> T.MatchExpr(substitute replacements value, List.map visitBranch branches)
     | T.Function _ -> expr
+    | T.Chan _ -> expr
+    | T.Never -> expr
+    | T.Head t -> T.Head(substitute replacements t)
+    | T.Tail t -> T.Tail(substitute replacements t)
+    | T.Wait t -> T.Wait(substitute replacements t)
+    | T.Watch t -> T.Watch(substitute replacements t)
+    | T.SignalCons(e1, e2) -> T.SignalCons(substitute replacements e1, substitute replacements e2)
+    | T.Sync(e1, e2) -> T.Sync(substitute replacements e1, substitute replacements e2)
+    | T.ApplyWhenV(e1, e2) -> T.ApplyWhenV(substitute replacements e1, substitute replacements e2)
+    | T.ApplyLater(e1, e2) -> T.ApplyLater(substitute replacements e1, substitute replacements e2)
+    | T.Delay(captures, body) -> T.Delay(List.map replace captures, substitute replacements body)
 
 let substituteOne variable ref expr =
     substitute (Map.ofList [ variable, ref ]) expr
