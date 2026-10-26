@@ -5,6 +5,16 @@ module T = Target
 type HeapValue =
     | Closure of captures: T.Var list * parameter: T.Var * body: T.Expr
     | ConstructorValue of T.Constructor * T.Var list
+    | ChannelValue of string
+    | WaitingValue of T.Var
+    | DelayValue of captures: T.Var list * body: T.Expr
+    | ApplyWhenVValue of T.Var * T.Var
+    | SyncValue of T.Var * T.Var
+    | DelayAppValue of T.Var * T.Var
+    | TailValue of T.Var
+    | WatchValue of T.Var
+    | SignalValue
+    | NeverValue
 
 type HeapEntry = { RefCount: int; Value: HeapValue }
 
@@ -12,11 +22,16 @@ type Heap = Map<T.Var, HeapEntry>
 
 exception HeapError of string
 
-//dup has only one possible outcome, but for Drop there are 3 options
+//dup has only one possible outcome, but for Drop there are 5 options
 type DropOption =
     | Decrement
     | DropLastClosure of T.Var list
     | DropLastConstructor of T.Var list
+    | DropLastValue of T.Var
+    | DropLastDelayedOperation of T.Var * T.Var
+    | DropLastSignalValue
+    | DropLastClean // doesnt require any further actions
+
 
 let empty: Heap = Map.empty
 
@@ -56,5 +71,15 @@ let drop ref heap =
         match entry.Value with
         | Closure(captures, _, _) -> newHeap, DropLastClosure captures
         | ConstructorValue(_, valList) -> newHeap, DropLastConstructor valList
+        | NeverValue -> newHeap, DropLastClean
+        | ChannelValue _ -> newHeap, DropLastClean
+        | WaitingValue t -> newHeap, DropLastValue t
+        | DelayValue(captures, _) -> newHeap, DropLastClosure captures // we ignore the body because droping the body must not execute it
+        | ApplyWhenVValue(t, t') -> newHeap, DropLastDelayedOperation(t, t')
+        | SyncValue(t, t') -> newHeap, DropLastDelayedOperation(t, t')
+        | DelayAppValue(t, t') -> newHeap, DropLastDelayedOperation(t, t')
+        | SignalValue -> newHeap, DropLastSignalValue
+        | TailValue t -> newHeap, DropLastValue t
+        | WatchValue t -> newHeap, DropLastValue t
     else
         raise (HeapError "Heap entries must have positive reference counts.")

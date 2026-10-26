@@ -32,7 +32,6 @@ let rec substitute (replacements: Map<T.Var, T.Var>) expr =
     | T.Cons(name, fields) -> T.Cons(name, List.map (substitute replacements) fields)
     | T.Dup(x, body) -> T.Dup(replace x, substitute replacements body)
     | T.Drop(x, body) -> T.Drop(replace x, substitute replacements body)
-    | T.MatchVar(x, branches) -> T.MatchVar(replace x, List.map visitBranch branches)
     | T.MatchExpr(value, branches) -> T.MatchExpr(substitute replacements value, List.map visitBranch branches)
     | T.Function _ -> expr
     | T.Chan _ -> expr

@@ -26,7 +26,6 @@ and Expr =
     | Delay of captures: Var list * body: Expr
     | App of Expr * Expr
     | Let of Var * Expr * Expr
-    | MatchVar of Var * MatchElem list
     | Dup of Var * Expr
     | Drop of Var * Expr
     | MatchExpr of Expr * MatchElem list

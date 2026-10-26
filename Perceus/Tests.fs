@@ -3,6 +3,7 @@ module Tests
 module S = Source
 module T = Target
 module H = heap
+module Sig = signalStore
 
 open Elaborator
 
@@ -40,8 +41,8 @@ let runIdentityFunctionTest () =
 
     let source = S.App(S.Function "identity", unitValue)
 
-    let result, memory, _, _ =
-        Interpreter.run 100 (elaborate source) H.empty 0 Set.empty functions
+    let result, memory, _, _, _ =
+        Interpreter.run 100 (elaborate source) H.empty Sig.empty 0 Set.empty functions
 
     let reference = Interpreter.getReference result
     expect (value reference memory = H.ConstructorValue(T.Constructor "Unit", [])) "Identity test failed"
@@ -103,8 +104,8 @@ let rec readList memory reference =
 let runMapTest () =
     let target = elaborate mapTest
 
-    let result, memory, _, _ =
-        Interpreter.run 10000 target H.empty 0 Set.empty mapFunctions
+    let result, memory, _, _, _ =
+        Interpreter.run 10000 target H.empty Sig.empty 0 Set.empty mapFunctions
 
     let resultReference = Interpreter.getReference result
     let answer = readList memory resultReference
