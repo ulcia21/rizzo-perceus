@@ -12,7 +12,7 @@
     <Compile Include="FreeAndBoundVars.fs" />
     <Compile Include="Elaborator.fs" />
     <Compile Include="Heap.fs" />
-    <Compile Include="SignalStore.fs" />
+    <Compile Include="signalStore.fs" />
     <Compile Include="Substitution.fs" />
     <Compile Include="Interpreter.fs" />
     <Compile Include="Tests.fs" />
