@@ -8,6 +8,11 @@ module Sig = signalStore
 
 exception InterpreterError of string
 
+type IncomingEvent = {
+    Channel : T.Var
+    Value : T.Var
+}
+
 
 // new Id for my heap, they are strings, because T.Var is a string
 let rec newId nextId usedIds =

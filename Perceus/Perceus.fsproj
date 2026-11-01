@@ -14,6 +14,7 @@
     <Compile Include="Heap.fs" />
     <Compile Include="signalStore.fs" />
     <Compile Include="Substitution.fs" />
+    <Compile Include="Ticking.fs" />
     <Compile Include="Interpreter.fs" />
     <Compile Include="Tests.fs" />
     <Compile Include="Program.fs" />

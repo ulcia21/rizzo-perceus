@@ -6,9 +6,8 @@ module T = Target
 open FreeAndBoundVars
 
 
-// --------------------------------------------------------
+
 // converting source types to target types
-// --------------------------------------------------------
 let toTargetVar (S.Varr x) = T.Varr x
 
 let toTargetConstructor (S.Constructor c) = T.Constructor c
@@ -41,9 +40,7 @@ let dropMany (variables: Set<S.Var>) (expr: T.Expr) : T.Expr =
     List.foldBack (fun x acc -> T.Drop(toTargetVar x, acc)) (Set.toList variables) expr
 
 
-// --------------------------------------------------------
 // Error messages and assumption checking
-// --------------------------------------------------------
 exception ElaborationError of string
 
 let private fail message = raise (ElaborationError message)
@@ -68,10 +65,7 @@ let private checkAssumptionsFigure8 Delta Gamma expr =
         fail "Figure 8 requires every free variable to occur in Delta or Gamma."
 
 
-// --------------------------------------------------------
 // Figure 8
-// --------------------------------------------------------
-
 
 let rec translate (Delta: Set<S.Var>) (Gamma: Set<S.Var>) (expr: S.Expr) : T.Expr =
     //checkAssumptionsFigure8 Delta Gamma expr // for debugging
