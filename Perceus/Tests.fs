@@ -4,6 +4,7 @@ module S = Source
 module T = Target
 module H = heap
 module Sig = signalStore
+module R = Runtime
 
 open Elaborator
 
@@ -41,11 +42,20 @@ let runIdentityFunctionTest () =
 
     let source = S.App(S.Function "identity", unitValue)
 
-    let result, memory, _, _, _, _ =
-        Interpreter.run 100 (elaborate source) H.empty Sig.empty Sig.empty 0 Set.empty functions
+    let state: R.State = {
+        Heap = H.empty;
+        HeapNow = Sig.empty;
+        HeapEarlier = Sig.empty;
+        NextId = 0;
+        UsedIds = Set.empty;
+        Functions = functions;
+        }
 
-    let reference = Interpreter.getReference result
-    expect (value reference memory = H.ConstructorValue(T.Constructor "Unit", [])) "Identity test failed"
+    let result, memory=
+        Interpreter.run 100 (elaborate source) state
+
+    let reference = result
+    expect (value reference memory.Heap = H.ConstructorValue(T.Constructor "Unit", [])) "Identity test failed"
     printfn "PASS identity returns Unit"
 
 
@@ -104,11 +114,20 @@ let rec readList memory reference =
 let runMapTest () =
     let target = elaborate mapTest
 
-    let result, memory, _, _, _, _ =
-        Interpreter.run 10000 target H.empty Sig.empty Sig.empty 0 Set.empty mapFunctions
+    let state2: R.State = {
+        Heap = H.empty;
+        HeapNow = Sig.empty;
+        HeapEarlier = Sig.empty;
+        NextId = 0;
+        UsedIds = Set.empty;
+        Functions = mapFunctions;
+        }
 
-    let resultReference = Interpreter.getReference result
-    let answer = readList memory resultReference
+    let result, memory =
+        Interpreter.run 10000 target state2
+
+    let resultReference = result
+    let answer = readList memory.Heap resultReference
 
     if answer <> [ 1; 1 ] then
         failwithf "Expected [1; 1], got %A" answer
