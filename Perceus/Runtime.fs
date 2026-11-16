@@ -10,6 +10,5 @@ type State =
         HeapNow: Sig.SignalStore
         HeapEarlier: Sig.SignalStore
         NextId: int
-        UsedIds: Set<T.Var>
         Functions:T.FunctionContext
     }

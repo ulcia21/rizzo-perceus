@@ -47,12 +47,11 @@ let runIdentityFunctionTest () =
         HeapNow = Sig.empty;
         HeapEarlier = Sig.empty;
         NextId = 0;
-        UsedIds = Set.empty;
         Functions = functions;
         }
 
     let result, memory=
-        Interpreter.run 100 (elaborate source) state
+        Interpreter.runWithLimit 100 (elaborate source) state
 
     let reference = result
     expect (value reference memory.Heap = H.ConstructorValue(T.Constructor "Unit", [])) "Identity test failed"
@@ -119,12 +118,11 @@ let runMapTest () =
         HeapNow = Sig.empty;
         HeapEarlier = Sig.empty;
         NextId = 0;
-        UsedIds = Set.empty;
         Functions = mapFunctions;
         }
 
     let result, memory =
-        Interpreter.run 10000 target state2
+        Interpreter.runWithLimit 10000 target state2
 
     let resultReference = result
     let answer = readList memory.Heap resultReference

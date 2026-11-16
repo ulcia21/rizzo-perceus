@@ -15,14 +15,12 @@ type IncomingEvent = {
     Value : T.Var
 }
 
+let defaultStepLimit = 10000
 
-let rec newId nextId usedIds =
-    let ref = T.Varr(string nextId)
 
-    if Set.contains ref usedIds then
-        newId (nextId + 1) usedIds
-    else
-        ref, (nextId + 1), Set.add ref usedIds
+let rec newId nextId =
+    T.Varr(string nextId), nextId + 1
+
 
 let isReference expr =
     match expr with
@@ -69,16 +67,16 @@ let rec reduce expr (state: R.State) =
         expr, state
     //lamr - we are allocating the closure
     | T.Lambda(captures, param, body) ->
-        let ref, nextId', usedIds' = newId state.NextId state.UsedIds
+        let ref, nextId' = newId state.NextId
         let newHeap = H.allocate ref (H.Closure(captures, param, body)) state.Heap
-        T.Var ref, { state with Heap = newHeap; NextId = nextId'; UsedIds = usedIds' }
+        T.Var ref, { state with Heap = newHeap; NextId = nextId' }
     //conr
     | T.Cons(name, fields) ->
         if List.forall isReference fields then
             let references = List.map getReference fields
-            let ref, nextId', usedIds' = newId state.NextId state.UsedIds
+            let ref, nextId' = newId state.NextId
             let newHeap = H.allocate ref (H.ConstructorValue(name, references)) state.Heap
-            T.Var ref, { state with Heap = newHeap; NextId = nextId'; UsedIds = usedIds' }
+            T.Var ref, { state with Heap = newHeap; NextId = nextId' }
         else
             // in case there are fields that are not references - we reduce one field at a time
             let rec reduceField remaining =
@@ -196,23 +194,23 @@ let rec reduce expr (state: R.State) =
         | None -> raise (InterpreterError "Unknown function looked up in FunctionContext")
 
     | T.Never ->
-        let ref, nextId', usedIds' = newId state.NextId state.UsedIds
+        let ref, nextId' = newId state.NextId
         let newHeap = H.allocate ref (H.NeverValue) state.Heap
-        T.Var ref, { state with Heap = newHeap; NextId = nextId'; UsedIds = usedIds' }
+        T.Var ref, { state with Heap = newHeap; NextId = nextId' }
 
     | T.Chan name ->
-        let ref, nextId', usedIds' = newId state.NextId state.UsedIds
+        let ref, nextId' = newId state.NextId
         let newHeap = H.allocate ref (H.ChannelValue name) state.Heap
-        T.Var ref, { state with Heap = newHeap; NextId = nextId'; UsedIds = usedIds' }
+        T.Var ref, { state with Heap = newHeap; NextId = nextId' }
 
     | T.Wait t ->
         match t with
         | T.Var chanRef ->
             match (H.lookup chanRef state.Heap).Value with
             | H.ChannelValue _ ->
-                let ref, nextId', usedIds' = newId state.NextId state.UsedIds
+                let ref, nextId' = newId state.NextId
                 let newHeap = H.allocate ref (H.WaitingValue chanRef) state.Heap
-                T.Var ref, { state with Heap = newHeap; NextId = nextId'; UsedIds = usedIds' }
+                T.Var ref, { state with Heap = newHeap; NextId = nextId' }
             | _ -> raise (InterpreterError "Wait expects a channel")
         | _ ->
             let t', state' =
@@ -221,9 +219,9 @@ let rec reduce expr (state: R.State) =
             T.Wait t', state'
 
     | T.Delay(captures, t) ->
-        let ref, nextId', usedIds' = newId state.NextId state.UsedIds
+        let ref, nextId' = newId state.NextId
         let newHeap = H.allocate ref (H.DelayValue(captures, t)) state.Heap
-        T.Var ref, { state with Heap = newHeap; NextId = nextId'; UsedIds = usedIds' }
+        T.Var ref, { state with Heap = newHeap; NextId = nextId' }
 
     | T.ApplyWhenV(left, right) ->
         match left, right with
@@ -236,9 +234,9 @@ let rec reduce expr (state: R.State) =
 
                 match isExistential rightEntry.Value with
                 | true ->
-                    let ref, nextId', usedIds' = newId state.NextId state.UsedIds
+                    let ref, nextId' = newId state.NextId
                     let newHeap = H.allocate ref (H.ApplyWhenVValue(leftRef, rightRef)) state.Heap
-                    T.Var ref, { state with Heap = newHeap; NextId = nextId'; UsedIds = usedIds' }
+                    T.Var ref, { state with Heap = newHeap; NextId = nextId' }
                 | _ -> raise (InterpreterError "Expected an existentially delayed operation for ApplyWhenV")
             | _ -> raise (InterpreterError "Expected an universally delayed function for ApplyWhenV.")
         | T.Var _, _ -> //left side ready, right not yet
@@ -263,9 +261,9 @@ let rec reduce expr (state: R.State) =
 
                 match isExistential rightEntry.Value with
                 | true ->
-                    let ref, nextId', usedIds' = newId state.NextId state.UsedIds
+                    let ref, nextId' = newId state.NextId
                     let newHeap = H.allocate ref (H.SyncValue(leftRef, rightRef)) state.Heap
-                    T.Var ref, { state with Heap = newHeap; NextId = nextId'; UsedIds = usedIds' }
+                    T.Var ref, { state with Heap = newHeap; NextId = nextId' }
                 | _ -> raise (InterpreterError "Expected an existentially delayed operation for Sync")
             | _ -> raise (InterpreterError "Expected an existentially delayed value for Sync.")
         | T.Var _, _ -> //left side ready, right not yet
@@ -289,9 +287,9 @@ let rec reduce expr (state: R.State) =
 
                 match isUniversal rightEntry.Value with
                 | true ->
-                    let ref, nextId', usedIds' = newId state.NextId state.UsedIds
+                    let ref, nextId' = newId state.NextId
                     let newHeap = H.allocate ref (H.DelayAppValue(leftRef, rightRef)) state.Heap
-                    T.Var ref, { state with Heap = newHeap; NextId = nextId'; UsedIds = usedIds' }
+                    T.Var ref, { state with Heap = newHeap; NextId = nextId' }
                 | _ -> raise (InterpreterError "Expected an universally delayed operation for ApplyLater")
             | _ -> raise (InterpreterError "Expected an universally delayed function for ApplyLater.")
         | T.Var _, _ -> //left side ready, right not yet
@@ -312,10 +310,10 @@ let rec reduce expr (state: R.State) =
 
             match isExistential rightEntry.Value with
             | true ->
-                let ref, nextId', usedIds' = newId state.NextId state.UsedIds
+                let ref, nextId' = newId state.NextId
                 let newHeapNow = Sig.allocate ref leftRef rightRef false state.HeapNow
                 let newHeap = H.allocate ref H.SignalValue state.Heap
-                T.Var ref, { state with Heap = newHeap; HeapNow = newHeapNow; NextId = nextId'; UsedIds = usedIds' }
+                T.Var ref, { state with Heap = newHeap; HeapNow = newHeapNow; NextId = nextId' }
             | false -> raise (InterpreterError "Expected an existentially delayed operation for SignalCons")
         | T.Var _, _ ->
             let (right': Target.Expr), state' =
@@ -347,9 +345,9 @@ let rec reduce expr (state: R.State) =
         | T.Var ref ->
             match (H.lookup ref state.Heap).Value with
             | H.SignalValue ->
-                let tailRef, nextId', usedIds' = newId state.NextId state.UsedIds
+                let tailRef, nextId' = newId state.NextId
                 let newHeap = H.allocate tailRef (H.TailValue ref) state.Heap
-                T.Var tailRef, { state with Heap = newHeap; NextId = nextId'; UsedIds = usedIds' }
+                T.Var tailRef, { state with Heap = newHeap; NextId = nextId' }
             | _ -> raise (InterpreterError "Argument for Tail is supposed to have a reference to signal")
         | _ ->
             let t', state' =
@@ -362,9 +360,9 @@ let rec reduce expr (state: R.State) =
         | T.Var ref ->
             match (H.lookup ref state.Heap).Value with
             | H.SignalValue ->
-                let watchRef, nextId', usedIds' = newId state.NextId state.UsedIds
+                let watchRef, nextId' = newId state.NextId
                 let newHeap = H.allocate watchRef (H.WatchValue ref) state.Heap
-                T.Var watchRef, { state with Heap = newHeap; NextId = nextId'; UsedIds = usedIds' }
+                T.Var watchRef, { state with Heap = newHeap; NextId = nextId' }
             | _ -> raise (InterpreterError "Argument for watch is supposed to have a reference to signal")
         | _ ->
             let t', state' =
@@ -377,7 +375,7 @@ let rec reduce expr (state: R.State) =
 
 
 
-let rec run stepleftlimit expr (state: R.State) =
+let rec runWithLimit stepleftlimit expr (state: R.State) =
     match expr with
     | T.Var ref ->
         H.lookup ref state.Heap |> ignore
@@ -389,4 +387,6 @@ let rec run stepleftlimit expr (state: R.State) =
         let expr', state' =
             reduce expr state
 
-        run (stepleftlimit - 1) expr' state'
+        runWithLimit (stepleftlimit - 1) expr' state'
+
+let run expr state = runWithLimit defaultStepLimit expr state

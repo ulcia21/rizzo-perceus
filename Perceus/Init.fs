@@ -6,9 +6,8 @@ let initialize sourceExpr functions stepleftlimit =
           HeapNow = signalStore.empty
           HeapEarlier = signalStore.empty
           NextId = 0
-          UsedIds = Set.empty
           Functions = functions }
 
     let targetExpr = Elaborator.elaborate sourceExpr
 
-    Interpreter.run stepleftlimit targetExpr state
+    Interpreter.run targetExpr state
